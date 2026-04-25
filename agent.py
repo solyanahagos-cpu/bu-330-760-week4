@@ -1,6 +1,7 @@
 """Math agent that solves questions using tools in a ReAct loop."""
 
 import json
+import time
 
 from dotenv import load_dotenv
 from pydantic_ai import Agent
@@ -12,7 +13,7 @@ load_dotenv()
 #   "google-gla:gemini-2.5-flash"       (needs GOOGLE_API_KEY)
 #   "openai:gpt-4o-mini"                (needs OPENAI_API_KEY)
 #   "anthropic:claude-sonnet-4-6"    (needs ANTHROPIC_API_KEY)
-MODEL = "google-gla:gemini-2.5-flash"
+MODEL = "anthropic:claude-haiku-4-5"
 
 agent = Agent(
     MODEL,
@@ -41,13 +42,26 @@ def calculator_tool(expression: str) -> str:
 #   3. If not found, return the list of available product names so the agent
 #      can try again with the correct name
 #
-# @agent.tool_plain
-# def product_lookup(product_name: str) -> str:
-#     """Look up the price of a product by name.
-#     Use this when a question asks about product prices from the catalog.
-#     """
-#     ...
-
+@agent.tool_plain
+def product_lookup(product_name: str) -> str:
+    """
+    Look up the price of a product by name.
+    Use this when a question asks about product prices from the catalog.
+    """
+    import json
+ 
+    with open("products.json", "r") as f:
+        products = json.load(f)
+ 
+    product_name_lower = product_name.lower()
+ 
+    for product, price in products.items():
+        if product.lower() == product_name_lower:
+            return f"The price of {product} is ${price}."
+ 
+    available_products = ", ".join(products.keys())
+    return f"Product not found. Available products are: {available_products}"
+ 
 
 def load_questions(path: str = "math_questions.md") -> list[str]:
     """Load numbered questions from the markdown file."""
@@ -83,6 +97,7 @@ def main():
 
         print(f"\n**Answer:** {result.output}\n")
         print("---\n")
+        time.sleep(15)
 
 
 if __name__ == "__main__":
